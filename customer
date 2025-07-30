@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Pharmacy Customer Check-In</title>
+<style>
+  body { font-family: Arial, sans-serif; max-width: 500px; margin: 30px auto; }
+  label { display: block; margin-top: 15px; }
+  input, select { width: 100%; padding: 8px; margin-top: 5px; }
+  button { margin-top: 20px; padding: 10px; width: 100%; background-color: #007bff; color: white; border: none; cursor: pointer; }
+  button:hover { background-color: #0056b3; }
+  .error { color: red; margin-top: 5px; }
+</style>
+</head>
+<body>
+<h2>Pharmacy Customer Check-In</h2>
+<form id="checkinForm" autocomplete="off">
+  <label for="firstName">First Name <span style="color:red">*</span></label>
+  <input type="text" id="firstName" name="firstName" required />
+
+  <label for="lastName">Last Name <span style="color:red">*</span></label>
+  <input type="text" id="lastName" name="lastName" required />
+
+  <label for="dob">Date of Birth <span id="dobRequired" style="color:red">*</span></label>
+  <input type="date" id="dob" name="dob" />
+
+  <label for="nhsNumber">NHS Number (optional)</label>
+  <input type="text" id="nhsNumber" name="nhsNumber" maxlength="10" pattern="\d*" placeholder="Enter NHS Number" />
+
+  <label for="purpose">Purpose of Visit <span style="color:red">*</span></label>
+  <select id="purpose" name="purpose" required>
+    <option value="" disabled selected>Select purpose</option>
+    <option value="EPS Prescription">EPS Prescription</option>
+    <option value="Paper Prescription">Paper Prescription</option>
+    <option value="Private Prescription">Private Prescription</option>
+    <option value="Travel Clinic">Travel Clinic</option>
+    <option value="Private Consultation">Private Consultation</option>
+    <option value="Daily Pick-Up">Daily Pick-Up</option>
+  </select>
+
+  <button type="submit">Check In</button>
+  <div id="message" style="margin-top:10px;"></div>
+</form>
+
+<script>
+  const form = document.getElementById('checkinForm');
+  const dobInput = document.getElementById('dob');
+  const purposeSelect = document.getElementById('purpose');
+  const dobRequiredMark = document.getElementById('dobRequired');
+  const messageDiv = document.getElementById('message');
+
+  function validateForm() {
+    const firstName = form.firstName.value.trim();
+    const lastName = form.lastName.value.trim();
+    const dob = form.dob.value;
+    const purpose = form.purpose.value;
+
+    if (!firstName || !lastName) {
+      messageDiv.textContent = 'Please enter both first and last names.';
+      messageDiv.style.color = 'red';
+      return false;
+    }
+
+    if (!purpose) {
+      messageDiv.textContent = 'Please select a purpose.';
+      messageDiv.style.color = 'red';
+      return false;
+    }
+
+    // Date of birth required unless purpose is Daily Pick-Up
+    if (purpose !== 'Daily Pick-Up' && !dob) {
+      messageDiv.textContent = 'Date of Birth is required unless purpose is Daily Pick-Up.';
+      messageDiv.style.color = 'red';
+      return false;
+    }
+
+    messageDiv.textContent = '';
+    return true;
+  }
+
+  // Toggle DOB required marker based on purpose
+  purposeSelect.addEventListener('change', () => {
+    if (purposeSelect.value === 'Daily Pick-Up') {
+      dobInput.required = false;
+      dobRequiredMark.style.visibility = 'hidden';
+    } else {
+      dobInput.required = true;
+      dobRequiredMark.style.visibility = 'visible';
+    }
+  });
+
+  form.addEventListener('submit', e => {
+    e.preventDefault();
+    if (!validateForm()) return;
+
+    const entry = {
+      firstName: form.firstName.value.trim(),
+      lastName: form.lastName.value.trim(),
+      dob: form.dob.value,
+      nhsNumber: form.nhsNumber.value.trim(),
+      purpose: form.purpose.value,
+      timestamp: new Date().toISOString(),
+    };
+
+    const checkIns = JSON.parse(localStorage.getItem('checkIns') || '[]');
+    checkIns.push(entry);
+    localStorage.setItem('checkIns', JSON.stringify(checkIns));
+
+    messageDiv.style.color = 'green';
+    messageDiv.textContent = 'Check-in successful! Thank you.';
+
+    form.reset();
+    dobInput.required = true;
+    dobRequiredMark.style.visibility = 'visible';
+  });
+</script>
+</body>
+</html>
