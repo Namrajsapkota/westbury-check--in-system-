@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Pharmacy Admin Check-In Dashboard</title>
+<style>
+  body { font-family: Arial, sans-serif; max-width: 900px; margin: 30px auto; }
+  h2 { margin-bottom: 20px; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+  th { background-color: #007bff; color: white; }
+  tr:nth-child(even) { background-color: #f9f9f9; }
+  .copyable { cursor: pointer; }
+  .copyable:hover { background-color: #d1e7fd; }
+  #alertFlash {
+    position: fixed;
+    top: 10px; right: 10px;
+    background: #28a745;
+    color: white;
+    padding: 10px 15px;
+    border-radius: 5px;
+    display: none;
+    box-shadow: 0 0 10px #28a745;
+    font-weight: bold;
+    z-index: 9999;
+  }
+  .done-checkbox {
+    transform: scale(1.3);
+    cursor: pointer;
+  }
+  tr.done {
+    background-color: #d4edda !important; /* light green background */
+    text-decoration: line-through;
+    color: #6c757d;
+  }
+</style>
+</head>
+<body>
+<h2>Pharmacy Admin Check-In Dashboard</h2>
+<div id="alertFlash">New Check-In!</div>
+<div id="content"></div>
+
+<audio id="bellSound" src="https://actions.google.com/sounds/v1/alarms/bell_ring.ogg" preload="auto"></audio>
+
+<script>
+  const content = document.getElementById('content');
+  const alertFlash = document.getElementById('alertFlash');
+  const bellSound = document.getElementById('bellSound');
+  let previousCount = 0;
+
+  function copyText(text) {
+    navigator.clipboard.writeText(text).then(() => {
+      alert('Copied: ' + text);
+    }).catch(() => {
+      alert('Failed to copy');
+    });
+  }
+
+  // Save the done status to localStorage
+  function toggleDone(index) {
+    let checkIns = JSON.parse(localStorage.getItem('checkIns') || '[]');
+    if (checkIns[index]) {
+      checkIns[index].done = !checkIns[index].done;
+      localStorage.setItem('checkIns', JSON.stringify(checkIns));
+      renderCheckIns();
+    }
+  }
+
+  function renderCheckIns() {
+    let checkIns = JSON.parse(localStorage.getItem('checkIns') || '[]');
+    if (checkIns.length === 0) {
+      content.innerHTML = '<p>No check-ins found.</p>';
+      previousCount = 0;
+      return;
+    }
+
+    // Check for new check-ins
+    if (checkIns.length > previousCount) {
+      bellSound.play();
+      showAlertFlash();
+      previousCount = checkIns.length;
+    }
+
+    const table = document.createElement('table');
+    table.innerHTML = `
+      <thead>
+        <tr>
+          <th>Done</th>
+          <th>First Name</th>
+          <th>Last Name</th>
+          <th>Date of Birth</th>
+          <th>NHS Number</th>
+          <th>Purpose</th>
+          <th>Timestamp</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${checkIns.map((entry, index) => `
+          <tr class="${entry.done ? 'done' : ''}">
+            <td>
+              <input 
+                type="checkbox" 
+                class="done-checkbox" 
+                ${entry.done ? 'checked' : ''} 
+                onchange="toggleDone(${index})"
+                title="Mark as done"
+              />
+            </td>
+            <td class="copyable">${entry.firstName}</td>
+            <td class="copyable">${entry.lastName}</td>
+            <td>${entry.dob || '-'}</td>
+            <td>${entry.nhsNumber || '-'}</td>
+            <td>${entry.purpose}</td>
+            <td>${new Date(entry.timestamp).toLocaleString()}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    `;
+    content.innerHTML = '';
+    content.appendChild(table);
+
+    // Add copy on click
+    document.querySelectorAll('td.copyable').forEach(td => {
+      td.title = 'Click to copy';
+      td.onclick = () => copyText(td.textContent);
+    });
+  }
+
+  function showAlertFlash() {
+    alertFlash.style.display = 'block';
+    setTimeout(() => {
+      alertFlash.style.display = 'none';
+    }, 3000);
+  }
+
+  // Make toggleDone available globally (for onchange inline handler)
+  window.toggleDone = toggleDone;
+
+  // Initial load
+  renderCheckIns();
+  // Auto-refresh every 10 seconds
+  setInterval(renderCheckIns, 10000);
+</script>
+</body>
+</html>
